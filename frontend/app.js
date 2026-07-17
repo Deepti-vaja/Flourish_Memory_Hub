@@ -178,20 +178,33 @@ document.addEventListener('DOMContentLoaded', () => {
 function initTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabPanes = document.querySelectorAll('.tab-pane');
+    const stepTriggers = document.querySelectorAll('.step-trigger');
+
+    const switchTab = (targetId) => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabPanes.forEach(p => p.classList.remove('active'));
+        stepTriggers.forEach(s => s.classList.remove('active-step'));
+
+        const activeBtn = document.querySelector(`.tab-btn[data-target="${targetId}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        const activeStep = document.querySelector(`.step-trigger[data-target="${targetId}"]`);
+        if (activeStep) activeStep.classList.add('active-step');
+
+        const targetPane = document.getElementById(targetId);
+        if (targetPane) targetPane.classList.add('active');
+
+        if (targetId === 'tab-steward') renderStewardQueue();
+        if (targetId === 'tab-sandbox') renderContextSandbox();
+        if (targetId === 'tab-ledger') renderAuditLedger();
+    };
 
     tabButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            tabButtons.forEach(b => b.classList.remove('active'));
-            tabPanes.forEach(p => p.classList.remove('active'));
+        btn.addEventListener('click', () => switchTab(btn.getAttribute('data-target')));
+    });
 
-            btn.classList.add('active');
-            const targetId = btn.getAttribute('data-target');
-            document.getElementById(targetId).classList.add('active');
-
-            if (targetId === 'tab-steward') renderStewardQueue();
-            if (targetId === 'tab-sandbox') renderContextSandbox();
-            if (targetId === 'tab-ledger') renderAuditLedger();
-        });
+    stepTriggers.forEach(step => {
+        step.addEventListener('click', () => switchTab(step.getAttribute('data-target')));
     });
 }
 
@@ -302,6 +315,18 @@ function renderRecentUploadsList() {
 // TAB 2: DATA STEWARD REVIEW PORTAL (`Stage 4 Engine`)
 // ============================================================================
 function initStewardQueue() {
+    const quickBtns = document.querySelectorAll('.quick-reason-btn');
+    quickBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const reason = btn.getAttribute('data-reason');
+            const textarea = document.getElementById('stewardJustification');
+            if (textarea) {
+                textarea.value = reason;
+                textarea.focus();
+            }
+        });
+    });
+
     document.getElementById('btnApproveItem').addEventListener('click', () => {
         if (!selectedStewardItem) return;
         const just = document.getElementById('stewardJustification').value.trim();
@@ -403,6 +428,25 @@ function initContextSandbox() {
 
     document.getElementById('runSearchBtn').addEventListener('click', () => {
         renderContextSandbox();
+    });
+
+    const interactiveSearchBtn = document.getElementById('runInteractiveSearchBtn');
+    if (interactiveSearchBtn) {
+        interactiveSearchBtn.addEventListener('click', () => {
+            renderContextSandbox();
+            const query = document.getElementById('sandboxSearchQuery').value;
+            alert(`🔍 Running Clearance Hybrid Search for query:\n"${query}"\n\nFiltering candidate vectors against current role's allowed namespaces and sensitivity ceiling...`);
+        });
+    }
+
+    const queryChips = document.querySelectorAll('.query-chip');
+    queryChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const queryText = chip.getAttribute('data-query');
+            const input = document.getElementById('sandboxSearchQuery');
+            if (input) input.value = queryText;
+            renderContextSandbox();
+        });
     });
 
     document.getElementById('copyPromptBtn').addEventListener('click', () => {
