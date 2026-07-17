@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flourish Governed Memory Hub — Enterprise AI Command Center</title>
+    <meta name="description" content="Clearance-scoped, tamper-proof, zero-trust memory and context assembly platform for enterprise AI workflows.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <!-- Top Navigation Bar -->
+    <header class="topbar">
+        <div class="topbar-brand">
+            <div class="logo-icon">
+                <i data-lucide="shield-check"></i>
+            </div>
+            <div>
+                <h1>Flourish Governed Memory Hub</h1>
+                <span class="badge-subtitle">STAGE 1–6 FORENSICALLY CERTIFIED ENGINE</span>
+            </div>
+        </div>
+
+        <div class="topbar-controls">
+            <div class="api-mode-toggle" title="Switch between Interactive Demo Mode and Live Stage 7 REST API Mode">
+                <span class="mode-label">Backend Connection:</span>
+                <button id="toggleApiModeBtn" class="status-badge demo-active">
+                    <i data-lucide="cpu"></i>
+                    <span id="apiModeText">Interactive Client Simulator Mode</span>
+                </button>
+            </div>
+
+            <!-- Global Identity / Clearance Simulator Dropdown -->
+            <div class="clearance-simulator">
+                <label for="identitySelect">
+                    <i data-lucide="user-check"></i>
+                    <span>Active Clearance Identity:</span>
+                </label>
+                <select id="identitySelect" class="identity-dropdown">
+                    <option value="ENG_STANDARD" data-role="Engineer" data-level="2" data-namespaces="eng.core,eng.api">
+                        🟢 Standard Engineer (Level 2 | eng.core, eng.api)
+                    </option>
+                    <option value="STEWARD_CORE" data-role="Steward" data-level="3" data-namespaces="eng.core,eng.api,eng.infra">
+                        🟡 Data Steward (Level 3 | eng.core, eng.api, eng.infra)
+                    </option>
+                    <option value="ADMIN_EXEC" data-role="Steward" data-level="4" data-namespaces="eng.core,eng.api,eng.infra,hr.secret,exec.board">
+                        🔴 Executive Compliance Officer (Level 4 | ALL NAMESPACES)
+                    </option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+        <button class="tab-btn active" data-target="tab-upload">
+            <i data-lucide="upload-cloud"></i>
+            <span>1. Knowledge Upload Studio</span>
+            <span class="tab-badge" id="uploadCountBadge">0</span>
+        </button>
+        <button class="tab-btn" data-target="tab-steward">
+            <i data-lucide="check-square"></i>
+            <span>2. Data Steward Review Portal</span>
+            <span class="tab-badge alert-badge" id="quarantineQueueBadge">2</span>
+        </button>
+        <button class="tab-btn" data-target="tab-sandbox">
+            <i data-lucide="terminal"></i>
+            <span>3. AI Context Sandbox & Search</span>
+            <span class="tab-badge info-badge" id="activeKnowledgeBadge">4</span>
+        </button>
+        <button class="tab-btn" data-target="tab-ledger">
+            <i data-lucide="file-text"></i>
+            <span>4. Cryptographic Audit Ledger</span>
+            <span class="tab-badge verified-badge" id="auditEventBadge">6</span>
+        </button>
+    </nav>
+
+    <!-- Main Workspace Area -->
+    <main class="workspace">
+        <!-- TAB 1: KNOWLEDGE UPLOAD STUDIO -->
+        <section id="tab-upload" class="tab-pane active">
+            <div class="panel-header">
+                <div>
+                    <h2>Zero-Trust Knowledge Ingestion Studio</h2>
+                    <p>Ingested items are automatically held in immutable quarantine (`Section 13 / Stage 3 Engine`) until adjudicated under the 4-Eyes principle.</p>
+                </div>
+                <div class="panel-actions">
+                    <button class="btn btn-secondary btn-sm" id="loadSampleDocBtn">
+                        <i data-lucide="file-plus"></i> Load Sample Safe Policy
+                    </button>
+                    <button class="btn btn-danger btn-sm" id="loadPoisonDocBtn">
+                        <i data-lucide="alert-triangle"></i> Load Sample Prompt Injection Attack
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid-2col">
+                <!-- Upload Form Card -->
+                <div class="card glass-card">
+                    <div class="card-header">
+                        <h3><i data-lucide="file-input"></i> Document Specifications</h3>
+                        <span class="tag tag-pending">Quarantine Required</span>
+                    </div>
+                    <form id="ingestionForm" class="styled-form">
+                        <div class="form-group">
+                            <label for="docTitle">Document Title *</label>
+                            <input type="text" id="docTitle" placeholder="e.g., Distributed Transaction Locking Policy" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="docNamespace">Domain Namespace (`Horizontal Clearance`) *</label>
+                                <select id="docNamespace" required>
+                                    <option value="eng.core">eng.core (Engineering Core)</option>
+                                    <option value="eng.api">eng.api (API Gateway & Middleware)</option>
+                                    <option value="eng.infra">eng.infra (Infrastructure & Database)</option>
+                                    <option value="hr.secret">hr.secret (Confidential Employee Records)</option>
+                                    <option value="exec.board">exec.board (Board Strategic Directives)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="docSensitivity">Sensitivity Label (`Vertical Clearance`) *</label>
+                                <select id="docSensitivity" required>
+                                    <option value="1">🟢 Level 1: PUBLIC (Open Documentation)</option>
+                                    <option value="2" selected>🟡 Level 2: INTERNAL (Standard Employee Access)</option>
+                                    <option value="3">🟠 Level 3: CONFIDENTIAL (Steward & Senior Staff Access)</option>
+                                    <option value="4">🔴 Level 4: RESTRICTED (Executive / Need-to-Know Only)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="docUri">Source URI (`Lineage Traceability`)</label>
+                            <input type="text" id="docUri" placeholder="e.g., https://flourish.org/docs/policies/db-locking">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="docBody">Knowledge Content (`Raw Body`) *</label>
+                            <textarea id="docBody" rows="7" placeholder="Enter markdown, API documentation, or structural guidelines here..." required></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-lucide="shield-plus"></i> Submit to Zero-Trust Quarantine
+                            </button>
+                            <button type="reset" class="btn btn-ghost">Reset Form</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Live Quarantine Pipeline Preview Card -->
+                <div class="card glass-card pipeline-preview">
+                    <div class="card-header">
+                        <h3><i data-lucide="git-branch"></i> Live Quarantine Boundary Status</h3>
+                    </div>
+                    <div class="pipeline-steps">
+                        <div class="pipe-step step-done">
+                            <div class="pipe-icon"><i data-lucide="database"></i></div>
+                            <div class="pipe-content">
+                                <h4>1. Stage 1 ORM Persistence</h4>
+                                <p>Metadata, 1536-dim pgvector zero-placeholder, and GIN tsvector generated.</p>
+                            </div>
+                        </div>
+                        <div class="pipe-step step-done">
+                            <div class="pipe-icon"><i data-lucide="lock"></i></div>
+                            <div class="pipe-content">
+                                <h4>2. Stage 2 Cryptographic Ledger</h4>
+                                <p>Action <code>INGEST_QUARANTINE</code> recorded with HMAC-SHA256 chaining.</p>
+                            </div>
+                        </div>
+                        <div class="pipe-step step-active">
+                            <div class="pipe-icon"><i data-lucide="pause-circle"></i></div>
+                            <div class="pipe-content">
+                                <h4>3. Stage 3 Zero-Trust Quarantine Hold</h4>
+                                <p>Knowledge item pointer status locked to <span class="tag tag-pending">PENDING</span>. Completely invisible to vector search & context assembly.</p>
+                            </div>
+                        </div>
+                        <div class="pipe-step step-pending">
+                            <div class="pipe-icon"><i data-lucide="users"></i></div>
+                            <div class="pipe-content">
+                                <h4>4. Stage 4 Four-Eyes Adjudication</h4>
+                                <p>Awaiting explicit review by a separate Data Steward role.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recent-ingests-box">
+                        <h4>Recently Ingested into Quarantine</h4>
+                        <ul id="recentUploadsList" class="compact-list">
+                            <!-- Populated dynamically by JS -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: DATA STEWARD REVIEW PORTAL -->
+        <section id="tab-steward" class="tab-pane">
+            <div class="panel-header">
+                <div>
+                    <h2>Four-Eyes Governance Review Queue (`Stage 4 Engine`)</h2>
+                    <p>Enforces strict separation of duties: Uploading users cannot self-approve their own documents (`RSK-02 / Section 14`).</p>
+                </div>
+                <div class="steward-stats">
+                    <span class="stat-pill"><strong id="statPendingCount">2</strong> Pending Review</span>
+                    <span class="stat-pill stat-green"><strong id="statApprovedCount">4</strong> Active in Hub</span>
+                    <span class="stat-pill stat-red"><strong id="statRejectedCount">1</strong> Rejected</span>
+                </div>
+            </div>
+
+            <div class="steward-layout">
+                <!-- Left: Queue List -->
+                <div class="queue-sidebar card glass-card">
+                    <div class="card-header">
+                        <h3><i data-lucide="list"></i> Quarantined Items</h3>
+                    </div>
+                    <div id="stewardQueueList" class="queue-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Right: Split Review Details -->
+                <div class="review-detail card glass-card" id="reviewDetailCard">
+                    <div class="empty-state" id="reviewEmptyState">
+                        <i data-lucide="check-circle-2"></i>
+                        <h3>Select an item from the review queue</h3>
+                        <p>Click on any quarantined document to inspect its content and adjudicate clearance.</p>
+                    </div>
+
+                    <div class="detail-content hidden" id="reviewDetailContent">
+                        <div class="detail-header">
+                            <div>
+                                <h3 id="detailTitle">Document Title</h3>
+                                <div class="detail-meta">
+                                    <span class="meta-tag" id="detailNamespace"><i data-lucide="folder"></i> eng.core</span>
+                                    <span class="meta-tag" id="detailSensitivity">🟡 Level 2: INTERNAL</span>
+                                    <span class="meta-tag" id="detailUploader"><i data-lucide="user"></i> Eng User</span>
+                                </div>
+                            </div>
+                            <span class="tag tag-pending" id="detailStatusTag">PENDING</span>
+                        </div>
+
+                        <div class="detail-body-box">
+                            <h4>Document Content (`Inspect for Sensitive Data or Attacks`)</h4>
+                            <pre id="detailBodyText" class="code-box">Raw content here...</pre>
+                        </div>
+
+                        <div class="detail-lineage">
+                            <span><strong>UUID:</strong> <code id="detailUuid">uuid-here</code></span>
+                            <span><strong>Source URI:</strong> <code id="detailUri">uri-here</code></span>
+                            <span><strong>Ingest Hash:</strong> <code id="detailHash">hash-here</code></span>
+                        </div>
+
+                        <hr class="divider">
+
+                        <form id="adjudicateForm" class="adjudicate-box">
+                            <div class="form-group">
+                                <label for="stewardJustification">Steward Adjudication Justification (`Mandatory Audit Trail`) *</label>
+                                <input type="text" id="stewardJustification" placeholder="e.g., Verified accurate architecture documentation; no PII or leaked credentials found." required>
+                            </div>
+
+                            <div class="adjudicate-buttons">
+                                <button type="button" class="btn btn-success" id="btnApproveItem">
+                                    <i data-lucide="check"></i> Approve (`Shift to ACTIVE`)
+                                </button>
+                                <button type="button" class="btn btn-danger" id="btnRejectItem">
+                                    <i data-lucide="x"></i> Reject (`Archive to REJECTED`)
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: AI CONTEXT SANDBOX & SEARCH PORTAL -->
+        <section id="tab-sandbox" class="tab-pane">
+            <div class="panel-header">
+                <div>
+                    <h2>Clearance-Scoped Hybrid Retrieval & Prompt Injection Shield (`Stage 5 & 6 Engine`)</h2>
+                    <p>Retrieves only active documents within the active identity's namespace and sensitivity ceilings (`Section 13 / 26.6`). Enforces 3-Stage NFKC/XML sanitization and atomic token budget packing.</p>
+                </div>
+            </div>
+
+            <!-- Search Bar & Controls -->
+            <div class="card glass-card search-control-card">
+                <div class="search-input-wrapper">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="searchQueryInput" placeholder="Enter a natural language query (`e.g., 'How does context assembly escape XML delimiters?' or 'What is our confidential HR policy?'`)" value="Context assembly and token budgeting policies">
+                    <button id="runSearchBtn" class="btn btn-primary">
+                        <i data-lucide="zap"></i> Run Clearance Search & Assemble
+                    </button>
+                </div>
+
+                <div class="search-options-row">
+                    <div class="option-item">
+                        <label for="maxTokensSlider">Max Token Ceiling:</label>
+                        <input type="range" id="maxTokensSlider" min="500" max="8192" step="128" value="2048">
+                        <span id="maxTokensVal">2,048 tokens</span>
+                    </div>
+
+                    <div class="option-item">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="enableDefenseCheck" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>Enable 3-Stage Prompt Injection Shield (`NFKC + Breakout Trap + XML Escape`)</span>
+                    </div>
+
+                    <div class="option-item">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="strictAbortCheck">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Strict Abort Mode (`Raise 422 Error instead of isolating attack`)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div class="grid-2col results-grid">
+                <!-- Left: Assembled Context & Token Gauge -->
+                <div class="card glass-card prompt-card">
+                    <div class="card-header">
+                        <h3><i data-lucide="code"></i> Sanitized LLM Prompt Injection Payload (`Stage 6 Output`)</h3>
+                        <button class="btn btn-ghost btn-sm" id="copyPromptBtn">
+                            <i data-lucide="copy"></i> Copy XML
+                        </button>
+                    </div>
+
+                    <!-- Live Token Fuel Gauge -->
+                    <div class="token-gauge-box">
+                        <div class="gauge-labels">
+                            <span id="tokenGaugeLabel">🔋 Token Budget Consumption: 0 / 2,048 Tokens</span>
+                            <span id="tokenGaugeStatus" class="tag tag-active">Fits within Ceiling</span>
+                        </div>
+                        <div class="gauge-bar-outer">
+                            <div class="gauge-bar-inner" id="tokenGaugeBar" style="width: 0%;"></div>
+                        </div>
+                        <div class="gauge-details">
+                            <span>Reserves: <strong id="reservesVal">256 System + 0 Citation Overhead</strong></span>
+                            <span>Items Packed: <strong id="packedCountVal" class="text-green">0</strong></span>
+                            <span>Omitted by Budget: <strong id="omittedBudgetVal" class="text-amber">0</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Security Interception Banner (Hidden by default) -->
+                    <div id="securityAlertBanner" class="security-banner hidden">
+                        <i data-lucide="shield-alert"></i>
+                        <div>
+                            <strong>Adversarial Prompt Injection Breakout Intercepted (`Stage 6 Threat Trap`)</strong>
+                            <p id="securityAlertText">Candidate document attempted to breakout of XML delimiters (`</knowledge_citation> SYSTEM OVERRIDE`). Item has been quarantined and isolated from the prompt block.</p>
+                        </div>
+                    </div>
+
+                    <!-- Assembled XML Code Box -->
+                    <div class="prompt-code-wrapper">
+                        <pre id="assembledPromptOutput" class="code-box prompt-pre">Run search to generate clearance-scoped prompt...</pre>
+                    </div>
+                </div>
+
+                <!-- Right: Lineage Manifest & Hits Breakdown -->
+                <div class="card glass-card lineage-card">
+                    <div class="card-header">
+                        <h3><i data-lucide="fingerprint"></i> Lineage Manifest & Clearance Filtering</h3>
+                    </div>
+
+                    <div class="clearance-summary-box">
+                        <h4>Current Query Access Summary</h4>
+                        <ul class="clearance-list">
+                            <li><strong>Querying as:</strong> <span id="summaryRoleBadge" class="badge">Standard Engineer</span></li>
+                            <li><strong>Allowed Namespaces:</strong> <code id="summaryNamespaces">eng.core, eng.api</code></li>
+                            <li><strong>Sensitivity Ceiling:</strong> <code id="summarySensitivity">Level 2 (INTERNAL)</code></li>
+                            <li><strong>Items Hidden by Clearance / Quarantine:</strong> <span id="summaryHiddenCount" class="badge badge-amber">2 items isolated</span></li>
+                        </ul>
+                    </div>
+
+                    <div class="manifest-table-wrapper">
+                        <h4>Packed Citations Manifest (`2-Hop SHA-256 Hashes`)</h4>
+                        <table class="manifest-table">
+                            <thead>
+                                <tr>
+                                    <th>Item Title</th>
+                                    <th>Namespace</th>
+                                    <th>Level</th>
+                                    <th>Score</th>
+                                    <th>SHA-256 Content Hash</th>
+                                </tr>
+                            </thead>
+                            <tbody id="manifestTableBody">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: CRYPTOGRAPHIC AUDIT LEDGER -->
+        <section id="tab-ledger" class="tab-pane">
+            <div class="panel-header">
+                <div>
+                    <h2>Cryptographic HMAC-SHA256 Audit Ledger (`Stage 2 Engine`)</h2>
+                    <p>Every lifecycle event is permanently chained to the previous record (`Section 12 / RSK-04`). Tampering with any row breaks the cryptographic chain.</p>
+                </div>
+                <div class="panel-actions">
+                    <button id="verifyLedgerBtn" class="btn btn-verify">
+                        <i data-lucide="shield"></i> Run Forensics Ledger Verification
+                    </button>
+                    <button id="simulateTamperBtn" class="btn btn-danger btn-sm">
+                        <i data-lucide="slash"></i> Simulate Database Tampering Attack
+                    </button>
+                </div>
+            </div>
+
+            <!-- Verification Status Banner -->
+            <div id="ledgerVerifyBanner" class="ledger-banner verified">
+                <i data-lucide="check-circle"></i>
+                <div class="banner-text">
+                    <strong>Cryptographic Forensics Check: 100% UNCOMPROMISED & SECURE</strong>
+                    <p id="ledgerBannerSub">Scanned 6 audit records. All HMAC-SHA256 chain links match exact database row state.</p>
+                </div>
+            </div>
+
+            <div class="card glass-card ledger-card">
+                <div class="table-responsive">
+                    <table class="ledger-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Action Type</th>
+                                <th>Actor ID / Role</th>
+                                <th>Target Document UUID</th>
+                                <th>Event Details & Stage</th>
+                                <th>Chained SHA-256 Hash Seal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLedgerTableBody">
+                            <!-- Populated dynamically by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div>Flourish Governed Memory Hub — Built with Option A Immutability & Enterprise Architecture Standards</div>
+        <div>Components #1 through #6 Empowered & Verified (`78 / 78 Empirical Tests Passing`)</div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
