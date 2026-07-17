@@ -1,0 +1,16 @@
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache
+.coverage
+htmlcov
+.git
+.gitignore
+.dockerignore
+tests/
+docs/
+DesignNotes.md
+README.md
+.env
+.venv
+*.md
