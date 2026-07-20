@@ -13,7 +13,7 @@
 
 ## 📋 Table of Contents
 1. [Executive Summary](#1-executive-summary)
-2. [Problem Statement & Business Motivation](#2-problem-statement--business-motivation)
+2. [Problem Statement & Business Motivation](#2-problem-statement-and-business-motivation)
 3. [Key Features](#3-key-features)
 4. [System Architecture](#4-system-architecture)
 5. [Technology Stack](#5-technology-stack)
@@ -34,7 +34,7 @@ This repository implements the **Flourish Governed Memory Hub Prototype** (Ref: 
 
 ---
 
-## 2. Problem Statement & Business Motivation
+## 2. Problem Statement and Business Motivation
 
 ### 🏢 The Business Risk
 An organization deploying AI agents across proprietary data faces two competing pressures:
