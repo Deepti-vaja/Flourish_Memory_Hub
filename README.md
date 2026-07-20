@@ -13,7 +13,7 @@
 
 ## 📋 Table of Contents
 1. [Executive Summary](#1-executive-summary)
-2. [Problem Statement & Business Motivation](#2-problem-statement-and-business-motivation)
+2. [Problem Statement & Business Motivation](#2-problem-statement--business-motivation)
 3. [Key Features](#3-key-features)
 4. [System Architecture](#4-system-architecture)
 5. [Technology Stack](#5-technology-stack)
@@ -24,7 +24,6 @@
 
 ---
 
-<a name="1-executive-summary"></a>
 ## 1. Executive Summary
 In modern enterprise AI deployments, autonomous agents and human workers require rapid access to cross-departmental institutional knowledge. However, exposing enterprise knowledge directly to AI agents or general search interfaces creates catastrophic operational and legal vulnerabilities. 
 
@@ -35,8 +34,7 @@ This repository implements the **Flourish Governed Memory Hub Prototype** (Ref: 
 
 ---
 
-<a name="2-problem-statement-and-business-motivation"></a>
-## 2. Problem Statement and Business Motivation
+## 2. Problem Statement & Business Motivation
 
 ### 🏢 The Business Risk
 An organization deploying AI agents across proprietary data faces two competing pressures:
@@ -48,7 +46,6 @@ Traditional search engines and vector databases perform post-query filtering. If
 
 ---
 
-<a name="3-key-features"></a>
 ## 3. Key Features
 * **🚫 Zero Leakage Guarantee:** 100% of automated tests confirm that no `PENDING`, `REJECTED`, or out-of-role item is ever returned.
 * **🔒 Cryptographic Immutability:** Append-only HMAC-SHA256 hash-chained audit ledger that detects historical row tampering in $O(N)$ sequential time.
@@ -58,7 +55,6 @@ Traditional search engines and vector databases perform post-query filtering. If
 
 ---
 
-<a name="4-system-architecture"></a>
 ## 4. System Architecture
 The system uses a highly cohesive, modular monolithic design capable of deterministic transactional integrity (`Section 15` fail-closed transactions):
 
@@ -103,7 +99,6 @@ flowchart TB
 
 ---
 
-<a name="5-technology-stack"></a>
 ## 5. Technology Stack
 * **Language:** Python 3.11
 * **Framework:** FastAPI / Uvicorn (ASGI)
@@ -115,7 +110,6 @@ flowchart TB
 
 ---
 
-<a name="6-installation--environment-setup"></a>
 ## 6. Installation & Environment Setup
 The system is fully containerized and executes deterministically. It requires **0 manual database seeding steps**.
 
@@ -141,7 +135,6 @@ pytest tests/ -v
 
 ---
 
-<a name="7-quick-start--demo-instructions"></a>
 ## 7. Quick Start & Demo Instructions
 The repository includes a comprehensive, multi-persona demo script that simulates the entire lifecycle of a document in an interactive CLI. 
 
@@ -181,7 +174,6 @@ Success! Compromised: False | Verified Records: 5
 
 ---
 
-<a name="8-governance--cryptographic-audit-ledger"></a>
 ## 8. Governance & Cryptographic Audit Ledger
 To ensure forensic accountability, the `audit_logs` table forms the backbone of the memory hub:
 * **Cryptographic Immutability (Option A):** Rather than relying solely on database-level role restrictions which can be bypassed by a compromised DBA, this prototype implements cryptographic append-only guarantees. 
@@ -189,7 +181,6 @@ To ensure forensic accountability, the `audit_logs` table forms the backbone of 
 
 ---
 
-<a name="9-documentation-reference"></a>
 ## 9. Documentation Reference
 For exhaustive architectural specifications, refer to the following project deliverables:
 * [Technical Blueprint](technical-bluprint.md): The single-source-of-truth enterprise architecture specification.
