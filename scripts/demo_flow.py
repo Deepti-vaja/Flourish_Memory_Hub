@@ -8,6 +8,12 @@ import asyncio
 import sys
 import uuid
 import httpx
+from pathlib import Path
+
+# Fix CLI pathing to allow running script directly from subfolder
+root_path = Path(__file__).resolve().parent.parent
+if str(root_path) not in sys.path:
+    sys.path.insert(0, str(root_path))
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
