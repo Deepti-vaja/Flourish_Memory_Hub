@@ -183,5 +183,5 @@ To ensure forensic accountability, the `audit_logs` table forms the backbone of 
 
 ## 9. Documentation Reference
 For exhaustive architectural specifications, refer to the following project deliverables:
-* [(Flourish_Memory_Hub](Flourish_Memory_Hub_Prototype_Brief.docx): The single-source-of-truth enterprise architecture specification.
+* [Flourish_Memory_Hub](Flourish_Memory_Hub_Prototype_Brief.docx): The single-source-of-truth enterprise architecture specification.
 * [Design Notes](DesignNotes.md): A concise summary of the specific engineering tradeoffs, security boundaries, and architectural patterns implemented in this prototype.
