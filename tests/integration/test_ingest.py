@@ -25,6 +25,7 @@ from app.audit.exceptions import AuditConcurrencyError
 from app.core.constants import KnowledgeStatusEnum, SensitivityLabelEnum
 from app.database.session import async_session_maker
 from app.models.audit import AuditLog, AuditSequenceHead
+from app.models.governance import GovernanceDecision
 from app.models.knowledge import KnowledgeItem
 from app.models.namespace import Namespace, Role, User
 from app.security.context import CallerContext
@@ -76,6 +77,7 @@ async def reset_ingestion_state() -> None:
 
         # Clean data tables
         await session.execute(delete(AuditLog))
+        await session.execute(delete(GovernanceDecision))
         await session.execute(delete(KnowledgeItem))
         await session.execute(
             update(AuditSequenceHead)
@@ -88,6 +90,7 @@ async def reset_ingestion_state() -> None:
 
     async with async_session_maker() as session:
         await session.execute(delete(AuditLog))
+        await session.execute(delete(GovernanceDecision))
         await session.execute(delete(KnowledgeItem))
         await session.execute(
             update(AuditSequenceHead)

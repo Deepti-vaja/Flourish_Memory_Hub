@@ -1,0 +1,32 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: memory_hub_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flourish_memory_hub
+    ports:
+      - "5433:5432"  # Mapped to 5433 to avoid conflicts if local postgres is already running on 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flourish_memory_hub"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    container_name: memory_hub_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/flourish_memory_hub
+      # Maintain all other defaults configured in app/core/config.py
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
