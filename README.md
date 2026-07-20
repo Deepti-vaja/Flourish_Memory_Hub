@@ -34,6 +34,8 @@ This repository implements the **Flourish Governed Memory Hub Prototype** (Ref: 
 
 ---
 
+## 2. Problem Statement & Business Motivation
+
 ### 🏢 The Business Risk
 An organization deploying AI agents across proprietary data faces two competing pressures:
 * **Speed & Autonomy:** Agents must instantly retrieve context to generate code, answer questions, and execute operational workflows.
