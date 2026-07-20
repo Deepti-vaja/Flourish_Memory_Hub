@@ -302,6 +302,23 @@ class AuditChainService:
         expected_prev_hash = "0" * 64
         total_verified = 0
 
+        # Option C: Snapshot the expected head state first to prevent READ COMMITTED false positives
+        head_stmt = select(AuditSequenceHead).where(AuditSequenceHead.lock_key == 1)
+        head_res = await session.execute(head_stmt)
+        head_row = head_res.scalar_one_or_none()
+        
+        if head_row is None:
+            return AuditVerifyResult(
+                compromised=True,
+                total_verified=0,
+                broken_sequence_id=None,
+                reason="System Integrity Compromised: AuditSequenceHead lock is missing.",
+                verification_duration_ms=0.0,
+            )
+            
+        expected_seq = head_row.last_sequence_id
+        expected_final_hash = head_row.last_entry_hash
+
         # Execute unshared read-only streaming query ordered strictly by sequence_id (`ISSUE-LOW-02`)
         stmt = select(AuditLog).order_by(AuditLog.sequence_id.asc())
         stream = await session.stream(stmt)
@@ -309,6 +326,11 @@ class AuditChainService:
         try:
             async for row_tuple in stream:
                 row: AuditLog = row_tuple[0]
+                
+                # Optimistic Read-Order: Ignore concurrent appends safely without blocking ingestion
+                if row.sequence_id > expected_seq:
+                    break
+
                 total_verified += 1
 
                 # 1. Verify hash chain link (`prev_hash`)
@@ -366,6 +388,37 @@ class AuditChainService:
 
                 # 4. Advance expected pointer
                 expected_prev_hash = row.entry_hash
+
+            # 5. Option C Post-Loop Assertions to mathematically catch tail truncation
+            if total_verified == 0 and expected_seq > 0:
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                return AuditVerifyResult(
+                    compromised=True,
+                    total_verified=0,
+                    broken_sequence_id=None,
+                    reason=f"Ledger Truncated: expected {expected_seq} sequences, but found none.",
+                    verification_duration_ms=duration_ms,
+                )
+
+            if total_verified < expected_seq:
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                return AuditVerifyResult(
+                    compromised=True,
+                    total_verified=total_verified,
+                    broken_sequence_id=None,
+                    reason=f"Ledger Truncated: expected {expected_seq} sequences, but stream ended at {total_verified}.",
+                    verification_duration_ms=duration_ms,
+                )
+                
+            if expected_prev_hash != expected_final_hash and expected_seq > 0:
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                return AuditVerifyResult(
+                    compromised=True,
+                    total_verified=total_verified,
+                    broken_sequence_id=total_verified,
+                    reason=f"Ledger Tail Corrupted: final entry hash '{expected_prev_hash}' does not match head '{expected_final_hash}'.",
+                    verification_duration_ms=duration_ms,
+                )
 
             duration_ms = (time.perf_counter() - start_time) * 1000.0
             return AuditVerifyResult(
