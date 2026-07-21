@@ -32,3 +32,17 @@ class AdjudicateItemResponse(BaseDTOSchema):
     item_id: UUID = Field(..., description="UUID v4 of adjudicated knowledge item")
     status: str = Field(..., validation_alias=AliasChoices("status", "decision"), description="New pointer state (`ACTIVE` or `REJECTED`)")
     justification: str = Field(..., description="Steward justification recorded in audit ledger")
+
+
+class PendingItemResponse(BaseDTOSchema):
+    """
+    Response DTO for an item in the governance pending queue.
+    """
+    item_id: UUID = Field(..., description="UUID v4 of pending item")
+    title: str = Field(..., description="Document title")
+    body: str = Field(..., description="Document text content")
+    namespace: str = Field(..., validation_alias=AliasChoices("namespace", "domain_namespace"), description="Domain namespace")
+    sensitivity_level: int = Field(..., description="Vertical sensitivity ceiling")
+    status: str = Field(..., description="Current lifecycle state (`guaranteed PENDING`)")
+    version: int = Field(default=1, description="Item version increment")
+    created_at: Optional[str] = Field(default=None, description="Ingestion timestamp")

@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_caller_context, get_db_transaction
 from app.audit.chainer import AuditChainService
 from app.security.context import CallerContext
+from typing import List
 from app.services.governance import GovernanceService
-from app.schemas.governance import AdjudicateItemRequest, AdjudicateItemResponse
+from app.schemas.governance import AdjudicateItemRequest, AdjudicateItemResponse, PendingItemResponse
 
 router = APIRouter()
 
@@ -48,3 +49,32 @@ async def adjudicate_item_endpoint(
             raw_result["status"] = raw_result.get("item_status") or raw_result.get("decision_type") or decision_str
 
     return AdjudicateItemResponse.model_validate(raw_result)
+
+
+@router.get(
+    "/pending",
+    response_model=List[PendingItemResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List quarantined pending items",
+    description="Retrieves quarantined ('PENDING') knowledge items strictly within the caller's allowed namespaces."
+)
+async def list_pending_items_endpoint(
+    session: AsyncSession = Depends(get_db_transaction),
+    caller: CallerContext = Depends(get_caller_context),
+) -> List[PendingItemResponse]:
+    audit_service = AuditChainService()
+    governance_service = GovernanceService(audit_service=audit_service)
+
+    raw_items = await governance_service.list_pending_items(
+        session=session,
+        caller=caller,
+    )
+    
+    # Ensure backwards compatibility for schema validation if keys differ
+    validated_items = []
+    for item in raw_items:
+        if "namespace" not in item and "domain_namespace" in item:
+            item["namespace"] = item["domain_namespace"]
+        validated_items.append(PendingItemResponse.model_validate(item))
+        
+    return validated_items

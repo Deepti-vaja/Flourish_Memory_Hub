@@ -67,3 +67,27 @@ venv.bak/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Flourish Memory Hub Project Specifics
+pgdata/
+pgdata_qa/
+*.sqlite3
+*.db
+
+# Temporary test files or generated docs
+*.log
+scratch/
+load_test.py
+patch_tests.py
+test_concurrency_false_positive.py
+truncation_test.py
+docker-compose-qa.yml
+verify_findings.py
+read_brief.py
+fix_anchors.py
+concurrent_cli_test.py
+adversarial_test.py
+test_isolation.py
+test_options.py
+
+
