@@ -59,20 +59,24 @@ Traditional search engines and vector databases perform post-query filtering. If
 
 ### 🖥️ Application Interfaces
 
-**1. Document Upload** 
-> Securely upload sensitive documents into the system.
+### 📤 1. Document Upload
+*Securely upload sensitive documents into the system.*
+
 ![Document Upload](assets/upload.png)
 
-**2. Active Knowledge Search** 
-> Search for and access only the documents you have permission to view.
+### 🔍 2. Active Knowledge Search
+*Search for and access only the documents you have permission to view.*
+
 ![Active Knowledge Search](assets/search.png)
 
-**3. Governance Review** 
-> Approve or reject new documents before they become active.
+### ⚖️ 3. Governance Review
+*Approve or reject new documents before they become active.*
+
 ![Governance Review](assets/governance.png)
 
-**4. Audit Verification** 
-> Verify that the system's data has not been tampered with.
+### 🛡️ 4. Audit Verification
+*Verify that the system's data has not been tampered with.*
+
 ![Audit Verification](assets/audit.png)
 
 ---
