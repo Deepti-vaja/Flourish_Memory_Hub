@@ -126,26 +126,40 @@ class RetrievalService(RetrievalServiceProtocol):
             rows = res.all()
             items_dto = [self._item_to_dto(row[0] if isinstance(row, tuple) else row, score=0.0) for row in rows]
         else:
+            from sqlalchemy import or_
+
             # Construct Flag-32 Cover Density normalized hybrid score expressions with COALESCE null wrapping
             if not is_vector_empty and query_vector is not None:
                 vec_sim = 1.0 - KnowledgeItem.embedding.cosine_distance(query_vector)
                 vector_score = func.coalesce(vec_sim, 0.0)
-                # If vector search only (no text), enforce similarity threshold directly in SQL
-                if is_text_empty:
-                    where_clauses.append(vector_score >= float(similarity_threshold))
+                vector_condition = (vector_score >= float(similarity_threshold))
             else:
                 vector_score = literal_column("0.0")
+                vector_condition = None
 
             if not is_text_empty and query_text is not None:
                 clean_text = str(query_text).strip()
+                # Inject OR between words to ensure partial matches return results (OR semantics)
+                or_text = " OR ".join(clean_text.split())
+                ts_query = func.websearch_to_tsquery("english", or_text)
                 lex_rank = func.ts_rank_cd(
                     KnowledgeItem.search_vector,
-                    func.websearch_to_tsquery("english", clean_text),
+                    ts_query,
                     32,  # Flag 32: Cover Density normalization R/(R+1) bounded to [0, 1)
                 )
                 lexical_score = func.coalesce(lex_rank, 0.0)
+                lexical_condition = KnowledgeItem.search_vector.op("@@")(ts_query)
             else:
                 lexical_score = literal_column("0.0")
+                lexical_condition = None
+            
+            # Enforce that the search_vector matches the query or the vector similarity is high enough
+            if lexical_condition is not None and vector_condition is not None:
+                where_clauses.append(or_(lexical_condition, vector_condition))
+            elif lexical_condition is not None:
+                where_clauses.append(lexical_condition)
+            elif vector_condition is not None:
+                where_clauses.append(vector_condition)
 
             combined_score = (vector_score + lexical_score).label("score")
 
