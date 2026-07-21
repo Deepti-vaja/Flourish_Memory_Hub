@@ -64,16 +64,15 @@ Traditional search engines and vector databases perform post-query filtering. If
 
 ![Document Upload](assets/upload.png)
 
-### 🔍 2. Active Knowledge Search
-*Search for and access only the documents you have permission to view.*
-
-![Active Knowledge Search](assets/search.png)
-
-### ⚖️ 3. Governance Review
+### ⚖️ 2. Governance Review
 *Approve or reject new documents before they become active.*
 
 ![Governance Review](assets/governance.png)
 
+### 🔍 3. Active Knowledge Search
+*Search for and access only the documents you have permission to view.*
+
+![Active Knowledge Search](assets/search.png)
 ### 🛡️ 4. Audit Verification
 *Verify that the system's data has not been tampered with.*
 
