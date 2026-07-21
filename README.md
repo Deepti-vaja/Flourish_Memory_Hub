@@ -57,6 +57,24 @@ Traditional search engines and vector databases perform post-query filtering. If
 * **🧠 Unified Vector & Relational Storage:** PostgreSQL 16 with `pgvector` handles both high-performance HNSW vector retrieval and transactional state machines without split-brain sync issues.
 * **⚡ Zero-Trust Identity:** Raw HTTP headers are resolved into an immutable `CallerContext`, injecting role-based access directly into SQL `WHERE` clauses prior to execution.
 
+### 🖥️ Application Interfaces
+
+**1. Document Upload** 
+> Securely upload sensitive documents into the system.
+![Document Upload](assets/upload.png)
+
+**2. Active Knowledge Search** 
+> Search for and access only the documents you have permission to view.
+![Active Knowledge Search](assets/search.png)
+
+**3. Governance Review** 
+> Approve or reject new documents before they become active.
+![Governance Review](assets/governance.png)
+
+**4. Audit Verification** 
+> Verify that the system's data has not been tampered with.
+![Audit Verification](assets/audit.png)
+
 ---
 
 <a name="4-system-architecture"></a>
