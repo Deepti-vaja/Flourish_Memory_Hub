@@ -11,6 +11,7 @@ from app.audit.exceptions import FlourishGovernanceError
 
 class GovernanceError(FlourishGovernanceError):
     """Base exception class for all Component #4 governance adjudication failures (`500 / General Domain Error`)."""
+
     pass
 
 
@@ -18,6 +19,7 @@ class DocumentNotFoundError(GovernanceError):
     """
     Raised when the target `item_id` does not physically exist inside the `knowledge_items` table (`404 Not Found`).
     """
+
     pass
 
 
@@ -27,6 +29,7 @@ class StewardAuthorizationError(GovernanceError):
     or attempts to adjudicate an item outside their horizontal (`allowed_namespaces`) or vertical (`max_sensitivity_level`)
     clearances (`403 Forbidden`).
     """
+
     pass
 
 
@@ -36,6 +39,7 @@ class FourEyesPrincipleViolationError(GovernanceError):
     violating the Four-Eyes Principle (`Brief P10 BR-05`, `Section 12`, `403 Forbidden`).
     Traps both Python-level pre-checks and database-level `SQLSTATE 23514` check violations (`trg_governance_four_eyes`).
     """
+
     pass
 
 
@@ -43,6 +47,7 @@ class DocumentNotPendingError(GovernanceError):
     """
     Raised when attempting to adjudicate a document whose current status is not `PENDING` (`409 Conflict`).
     """
+
     pass
 
 
@@ -51,6 +56,7 @@ class DocumentAlreadyApprovedError(DocumentNotPendingError):
     Raised when attempting to adjudicate a document that has already been `APPROVED` (`409 Conflict`).
     Enforces idempotent adjudication safety (`Section 12`).
     """
+
     pass
 
 
@@ -59,6 +65,7 @@ class DocumentAlreadyRejectedError(DocumentNotPendingError):
     Raised when attempting to adjudicate a document that has already been `REJECTED` (`409 Conflict`).
     Enforces idempotent adjudication safety (`Section 12`).
     """
+
     pass
 
 

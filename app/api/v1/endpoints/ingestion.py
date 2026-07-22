@@ -3,14 +3,16 @@ Stage 7 Ingestion Controller (`POST /api/v1/ingestion/items`).
 Exposes Stage 3 Zero-Trust Ingestion engine over ASGI/FastAPI.
 Ensures that all ingested items land strictly inside `PENDING` quarantine (`Section 13 Invariant`).
 """
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_caller_context, get_db_transaction
 from app.audit.chainer import AuditChainService
 from app.core.constants import SensitivityLabelEnum
-from app.security.context import CallerContext
-from app.services.ingestion import IngestionService, SENSITIVITY_LEVEL_MAP
 from app.schemas.ingestion import IngestItemRequest, IngestItemResponse
+from app.security.context import CallerContext
+from app.services.ingestion import SENSITIVITY_LEVEL_MAP, IngestionService
 
 router = APIRouter()
 
@@ -20,7 +22,7 @@ router = APIRouter()
     response_model=IngestItemResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Ingest knowledge item into zero-trust quarantine",
-    description="Validates and ingests document content. Item status is locked to 'PENDING' until Data Steward 4-Eyes adjudication."
+    description="Validates and ingests document content. Item status is locked to 'PENDING' until Data Steward 4-Eyes adjudication.",
 )
 async def ingest_item_endpoint(
     payload: IngestItemRequest,

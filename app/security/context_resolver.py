@@ -3,10 +3,11 @@ Security Context Resolver Implementation (`Stage 7 ASGI Boundary / Section 26.1 
 Resolves raw HTTP request headers into an immutable `CallerContext` dataclass,
 enforcing strict UUID parsing, clearance string normalization, and correlation ID auto-generation.
 """
+
 import uuid
-from typing import Dict, Set
 from uuid import UUID
-from app.security.context import CallerContext, InvalidCallerContextError, SecurityResolverProtocol
+
+from app.security.context import CallerContext, InvalidCallerContextError
 
 
 class SecurityContextResolver:
@@ -14,7 +15,8 @@ class SecurityContextResolver:
     Production implementation of `SecurityResolverProtocol`.
     Parses and verifies raw headers, raising `InvalidCallerContextError` on malformed/missing identity claims.
     """
-    async def resolve_context(self, headers: Dict[str, str]) -> CallerContext:
+
+    async def resolve_context(self, headers: dict[str, str]) -> CallerContext:
         """
         Resolves raw request headers into an immutable CallerContext (`Section 26.1`).
         Header Keys (case-insensitive via normalized dictionary lookup):
@@ -36,7 +38,9 @@ class SecurityContextResolver:
         try:
             user_id = UUID(raw_user_id.strip())
         except (ValueError, TypeError, AttributeError):
-            raise InvalidCallerContextError(f"Malformed 'X-User-ID' header: '{raw_user_id}' is not a valid UUID v4.")
+            raise InvalidCallerContextError(
+                f"Malformed 'X-User-ID' header: '{raw_user_id}' is not a valid UUID v4."
+            )
 
         identity_key = norm_headers.get("x-identity-key", str(user_id)).strip()
         if not identity_key:
@@ -48,7 +52,9 @@ class SecurityContextResolver:
 
         # Normalized namespaces set (`Risk #2 Remediation`)
         raw_namespaces = norm_headers.get("x-allowed-namespaces", "eng.core")
-        allowed_namespaces: Set[str] = {ns.strip() for ns in raw_namespaces.split(",") if ns.strip()}
+        allowed_namespaces: set[str] = {
+            ns.strip() for ns in raw_namespaces.split(",") if ns.strip()
+        }
         if not allowed_namespaces:
             allowed_namespaces = {"eng.core"}
 
@@ -73,7 +79,7 @@ class SecurityContextResolver:
             functional_role=functional_role,
             allowed_namespaces=allowed_namespaces,
             max_sensitivity_level=max_sensitivity_level,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
 
 

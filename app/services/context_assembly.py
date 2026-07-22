@@ -4,12 +4,14 @@ Context Assembly, Lineage Tracing & Prompt Injection Defense Engine (`Stage 6 En
 Mandated by Blueprint Section 26.6 (ContextAssemblyServiceProtocol), Section 13 (Active-Only Gating),
 and Section 19 (RSK-04 / RSK-05). Implements Option A structural immutability (`zero modifications to #1–#5`).
 """
-import html
+
 import hashlib
+import html
 import re
 import unicodedata
 import uuid
-from typing import Any, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 from app.audit.chainer import AuditChainService, AuditEventPayload
 from app.core.constants import AuditActionEnum
@@ -28,7 +30,7 @@ from app.services.retrieval_exceptions import ItemNotFoundError, SearchClearance
 class ContextAssemblyService(ContextAssemblyServiceProtocol):
     """
     Core implementation of the Stage 6 Context Assembly & Lineage Engine.
-    
+
     Guarantees:
     1. Precondition Step 0 (`session.in_transaction() must be True / zero lifecycle commits`).
     2. Multi-channel Orchestration (`explicit_item_ids` exact lookup via `RetrievalService.get_item_by_id` + `search`).
@@ -56,13 +58,13 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
 
     def __init__(
         self,
-        retrieval_service: Optional[RetrievalService] = None,
-        audit_service: Optional[AuditChainService] = None,
+        retrieval_service: RetrievalService | None = None,
+        audit_service: AuditChainService | None = None,
     ) -> None:
         self.retrieval_service = retrieval_service or RetrievalService()
         self.audit_service = audit_service or AuditChainService()
 
-    def _estimate_tokens(self, text: str, tokenizer_fn: Optional[Callable[[str], int]] = None) -> int:
+    def _estimate_tokens(self, text: str, tokenizer_fn: Callable[[str], int] | None = None) -> int:
         """Estimate token consumption using custom callback or conservative 2.8 chars/token ceiling."""
         if not text:
             return 0
@@ -78,10 +80,10 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
         title: str,
         body: str,
         enable_injection_defense: bool,
-    ) -> tuple[str, str, Optional[str]]:
+    ) -> tuple[str, str, str | None]:
         """
         Execute 3-Stage NFKC/XML/Heuristic sanitization.
-        
+
         Returns tuple `(escaped_title, escaped_body, matched_breakout_pattern)`.
         If `matched_breakout_pattern` is not None, the item contains active breakout/override injection.
         """
@@ -99,7 +101,7 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
         combined = f"{clean_title}\n{clean_body}"
 
         # Stage 2: Active threat breakout interception
-        matched_pattern: Optional[str] = None
+        matched_pattern: str | None = None
         for pattern in self.BREAKOUT_PATTERNS:
             match = pattern.search(combined)
             if match:
@@ -114,18 +116,18 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
 
     async def assemble_context(
         self,
-        session: Union[Any, Any],
+        session: Any | Any,
         caller: CallerContext,
-        query_text: Optional[str] = None,
-        query_vector: Optional[List[float]] = None,
-        explicit_item_ids: Optional[List[Union[str, uuid.UUID]]] = None,
+        query_text: str | None = None,
+        query_vector: list[float] | None = None,
+        explicit_item_ids: list[str | uuid.UUID] | None = None,
         max_tokens: int = 4096,
         similarity_threshold: float = 0.7,
-        domain_namespaces: Optional[List[str]] = None,
+        domain_namespaces: list[str] | None = None,
         enable_injection_defense: bool = True,
         strict_security_abort: bool = False,
-        tokenizer_fn: Optional[Callable[[str], int]] = None,
-    ) -> Dict[str, Any]:
+        tokenizer_fn: Callable[[str], int] | None = None,
+    ) -> dict[str, Any]:
         """Execute clearance-scoped retrieval and assemble a sanitized, lineage-tracked LLM context block."""
         # Precondition Step 0: Transaction Boundary Assertion (`Section 15`)
         if hasattr(session, "in_transaction") and callable(session.in_transaction):
@@ -137,10 +139,12 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
         # Sanitize token ceiling vs mandatory system reserve
         max_tokens = max(1, int(max_tokens))
         if max_tokens <= self.SYSTEM_FRAME_RESERVE:
-            raise TokenBudgetExhaustionError(max_tokens=max_tokens, required_reserve=self.SYSTEM_FRAME_RESERVE)
+            raise TokenBudgetExhaustionError(
+                max_tokens=max_tokens, required_reserve=self.SYSTEM_FRAME_RESERVE
+            )
 
-        candidate_items: List[Dict[str, Any]] = []
-        seen_item_ids: set = set()
+        candidate_items: list[dict[str, Any]] = []
+        seen_item_ids: set[str] = set()
         items_omitted_clearance = 0
 
         # Channel 1: Explicit known citations (`e.g., regulatory or legal documents`)
@@ -150,7 +154,9 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
                     target_id = str(raw_id)
                     if target_id in seen_item_ids:
                         continue
-                    item_dto = await self.retrieval_service.get_item_by_id(session, caller, target_id)
+                    item_dto = await self.retrieval_service.get_item_by_id(
+                        session, caller, target_id
+                    )
                     candidate_items.append(item_dto)
                     seen_item_ids.add(target_id)
                 except (ItemNotFoundError, SearchClearanceViolationError):
@@ -178,8 +184,8 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
 
         # Process candidates through Atomic Token Budgeting & 3-Stage Sanitization
         current_tokens = self.SYSTEM_FRAME_RESERVE
-        assembled_chunks: List[str] = []
-        lineage_manifest: List[Dict[str, Any]] = []
+        assembled_chunks: list[str] = []
+        lineage_manifest: list[dict[str, Any]] = []
         items_rejected_injection = 0
         items_omitted_budget = 0
 
@@ -209,19 +215,23 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
 
             if matched_breakout is not None:
                 if strict_security_abort:
-                    raise PromptInjectionSecurityError(item_id=item_id, pattern_matched=matched_breakout)
+                    raise PromptInjectionSecurityError(
+                        item_id=item_id, pattern_matched=matched_breakout
+                    )
                 items_rejected_injection += 1
                 continue
 
             # Construct structural XML citation block
             chunk_xml = (
                 f'<knowledge_citation id="{item_id}" namespace="{namespace}" version="{version}" score="{score:.4f}">\n'
-                f'<title>{escaped_title}</title>\n'
-                f'<body>{escaped_body}</body>\n'
-                f'</knowledge_citation>'
+                f"<title>{escaped_title}</title>\n"
+                f"<body>{escaped_body}</body>\n"
+                f"</knowledge_citation>"
             )
 
-            chunk_tokens = self._estimate_tokens(chunk_xml, tokenizer_fn) + self.CITATION_OVERHEAD_PER_ITEM
+            chunk_tokens = (
+                self._estimate_tokens(chunk_xml, tokenizer_fn) + self.CITATION_OVERHEAD_PER_ITEM
+            )
 
             # Atomic Budget Packing (`never half-truncating`)
             if current_tokens + chunk_tokens > max_tokens:
@@ -248,7 +258,7 @@ class ContextAssemblyService(ContextAssemblyServiceProtocol):
 
         # Traceable 2-Hop Cryptographic Audit Chaining (`RSK-04`)
         # Log STAGE_6_CONTEXT_ASSEMBLY without storing restricted raw body/text keys inside details
-        target_uuid: Optional[uuid.UUID] = None
+        target_uuid: uuid.UUID | None = None
         if lineage_manifest:
             try:
                 target_uuid = uuid.UUID(lineage_manifest[0]["item_id"])

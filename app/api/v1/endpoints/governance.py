@@ -3,15 +3,21 @@ Stage 7 Governance Controller (`POST /api/v1/governance/adjudicate/{item_id}`).
 Exposes Stage 4 Four-Eyes Governance adjudication over ASGI/FastAPI.
 Enforces separation of duties (`caller.user_id != item.ingested_by_id`) and mandatory justification (`RSK-02`).
 """
+
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_caller_context, get_db_transaction
 from app.audit.chainer import AuditChainService
+from app.schemas.governance import (
+    AdjudicateItemRequest,
+    AdjudicateItemResponse,
+    PendingItemResponse,
+)
 from app.security.context import CallerContext
-from typing import List
 from app.services.governance import GovernanceService
-from app.schemas.governance import AdjudicateItemRequest, AdjudicateItemResponse, PendingItemResponse
 
 router = APIRouter()
 
@@ -21,7 +27,7 @@ router = APIRouter()
     response_model=AdjudicateItemResponse,
     status_code=status.HTTP_200_OK,
     summary="Four-Eyes Adjudication of quarantined item",
-    description="Allows Data Stewards or Admins to approve or reject quarantined ('PENDING') knowledge items."
+    description="Allows Data Stewards or Admins to approve or reject quarantined ('PENDING') knowledge items.",
 )
 async def adjudicate_item_endpoint(
     item_id: UUID,
@@ -46,22 +52,24 @@ async def adjudicate_item_endpoint(
 
     if isinstance(raw_result, dict):
         if "status" not in raw_result:
-            raw_result["status"] = raw_result.get("item_status") or raw_result.get("decision_type") or decision_str
+            raw_result["status"] = (
+                raw_result.get("item_status") or raw_result.get("decision_type") or decision_str
+            )
 
     return AdjudicateItemResponse.model_validate(raw_result)
 
 
 @router.get(
     "/pending",
-    response_model=List[PendingItemResponse],
+    response_model=list[PendingItemResponse],
     status_code=status.HTTP_200_OK,
     summary="List quarantined pending items",
-    description="Retrieves quarantined ('PENDING') knowledge items strictly within the caller's allowed namespaces."
+    description="Retrieves quarantined ('PENDING') knowledge items strictly within the caller's allowed namespaces.",
 )
 async def list_pending_items_endpoint(
     session: AsyncSession = Depends(get_db_transaction),
     caller: CallerContext = Depends(get_caller_context),
-) -> List[PendingItemResponse]:
+) -> list[PendingItemResponse]:
     audit_service = AuditChainService()
     governance_service = GovernanceService(audit_service=audit_service)
 
@@ -69,12 +77,12 @@ async def list_pending_items_endpoint(
         session=session,
         caller=caller,
     )
-    
+
     # Ensure backwards compatibility for schema validation if keys differ
     validated_items = []
     for item in raw_items:
         if "namespace" not in item and "domain_namespace" in item:
             item["namespace"] = item["domain_namespace"]
         validated_items.append(PendingItemResponse.model_validate(item))
-        
+
     return validated_items

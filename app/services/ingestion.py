@@ -12,14 +12,13 @@ Implements `IngestionServiceProtocol` (`Section 26.3`) with verified architectur
 """
 
 import math
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.audit.chainer import AuditActionEnum, AuditChainProtocol, AuditEventPayload
-from app.core.constants import KnowledgeStatusEnum, SensitivityLabelEnum
+from app.audit.chainer import AuditChainProtocol, AuditEventPayload
+from app.core.constants import AuditActionEnum, KnowledgeStatusEnum, SensitivityLabelEnum
 from app.models.knowledge import KnowledgeItem
 from app.models.namespace import Namespace
 from app.security.context import CallerContext
@@ -33,8 +32,7 @@ from app.services.exceptions import (
 )
 from app.services.protocols import IngestionServiceProtocol
 
-
-SENSITIVITY_LEVEL_MAP: Dict[SensitivityLabelEnum, int] = {
+SENSITIVITY_LEVEL_MAP: dict[SensitivityLabelEnum, int] = {
     SensitivityLabelEnum.PUBLIC: 1,
     SensitivityLabelEnum.INTERNAL: 2,
     SensitivityLabelEnum.CONFIDENTIAL: 3,
@@ -42,7 +40,7 @@ SENSITIVITY_LEVEL_MAP: Dict[SensitivityLabelEnum, int] = {
 }
 
 
-def _clean_text(text: Optional[str]) -> Optional[str]:
+def _clean_text(text: str | None) -> str | None:
     """Strips PostgreSQL-incompatible null bytes (`\x00`) and leading/trailing whitespace (`RSK-08`)."""
     if text is None:
         return None
@@ -59,7 +57,9 @@ class IngestionService(IngestionServiceProtocol):
 
     def __init__(self, audit_service: AuditChainProtocol) -> None:
         if not audit_service:
-            raise IngestionError("AuditChainProtocol instance is required to initialize IngestionService.")
+            raise IngestionError(
+                "AuditChainProtocol instance is required to initialize IngestionService."
+            )
         self._audit_service = audit_service
 
     async def ingest_item(
@@ -68,19 +68,21 @@ class IngestionService(IngestionServiceProtocol):
         caller: CallerContext,
         title: str,
         body: str,
-        source_uri: Optional[str],
+        source_uri: str | None,
         domain_namespace: str,
-        sensitivity_label: Union[str, SensitivityLabelEnum],
-        embedding: Optional[List[float]] = None,
-        details: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        sensitivity_label: str | SensitivityLabelEnum,
+        embedding: list[float] | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Orchestrates Blue-Green ingestion (`Section 26.3`) over an active AsyncSession (`psycopg3`).
         Returns the exact DTO representation dictionary (`Dict[str, Any]`) of the newly created item.
         """
         # 1. Assert active transaction boundary (`ARCH-RULE-01 / Proposal E`)
         if not hasattr(session, "in_transaction") or not session.in_transaction():
-            raise IngestionError("Database session is closed or not inside an active transaction boundary (`session.begin()` required).")
+            raise IngestionError(
+                "Database session is closed or not inside an active transaction boundary (`session.begin()` required)."
+            )
 
         try:
             # 2. Validate CallerContext structure and clearance types (`RSK-ING-06`, `Section 26.1`, `DEF-03`)
@@ -91,7 +93,9 @@ class IngestionService(IngestionServiceProtocol):
                 or not isinstance(caller.max_sensitivity_level, int)
                 or not (1 <= caller.max_sensitivity_level <= 4)
             ):
-                raise IngestionError("Invalid or missing CallerContext identity or clearance attributes for ingestion.")
+                raise IngestionError(
+                    "Invalid or missing CallerContext identity or clearance attributes for ingestion."
+                )
 
             # 3. Validate and sanitize text input payloads (`EDG-ING-16`, `EDG-ING-17`, `Proposal H`)
             clean_title = _clean_text(title)
@@ -102,13 +106,19 @@ class IngestionService(IngestionServiceProtocol):
                 raise IngestionPayloadError("Document title and body must be non-empty strings.")
 
             if len(clean_title) > 255:
-                raise IngestionPayloadError(f"Document title exceeds maximum length of 255 characters (got {len(clean_title)}).")
+                raise IngestionPayloadError(
+                    f"Document title exceeds maximum length of 255 characters (got {len(clean_title)})."
+                )
 
             if clean_uri is not None and len(clean_uri) > 512:
-                raise IngestionPayloadError(f"Document source_uri exceeds maximum length of 512 characters (got {len(clean_uri)}).")
+                raise IngestionPayloadError(
+                    f"Document source_uri exceeds maximum length of 512 characters (got {len(clean_uri)})."
+                )
 
             if len(clean_body.encode("utf-8")) > 10_000_000:
-                raise IngestionPayloadError("Document payload exceeds maximum permitted size (10 MB).")
+                raise IngestionPayloadError(
+                    "Document payload exceeds maximum permitted size (10 MB)."
+                )
 
             # 4. Resolve and validate sensitivity label & integer level (`Proposal F / ARCH-RULE-02`)
             if isinstance(sensitivity_label, str):
@@ -124,7 +134,9 @@ class IngestionService(IngestionServiceProtocol):
             elif isinstance(sensitivity_label, SensitivityLabelEnum):
                 label_enum = sensitivity_label
             else:
-                raise IngestionPayloadError("sensitivity_label must be a valid string or SensitivityLabelEnum.")
+                raise IngestionPayloadError(
+                    "sensitivity_label must be a valid string or SensitivityLabelEnum."
+                )
 
             level = SENSITIVITY_LEVEL_MAP[label_enum]
 
@@ -163,12 +175,12 @@ class IngestionService(IngestionServiceProtocol):
             # 7. 64-Bit Composite Advisory Transaction Locking & Blue-Green Version Calculation (`Proposal A / RSK-05`)
             if clean_uri is not None:
                 # Serializes all concurrent workers across the cluster for this URI (`DEF-02 Path A`)
-                await session.execute(
-                    select(func.pg_advisory_xact_lock(func.hashtext(clean_uri)))
-                )
+                await session.execute(select(func.pg_advisory_xact_lock(func.hashtext(clean_uri))))
                 # Verify global ownership across namespaces (`DEF-02 Path A`)
                 existing_ns_result = await session.execute(
-                    select(KnowledgeItem.domain_namespace).where(KnowledgeItem.source_uri == clean_uri).limit(1)
+                    select(KnowledgeItem.domain_namespace)
+                    .where(KnowledgeItem.source_uri == clean_uri)
+                    .limit(1)
                 )
                 existing_ns = existing_ns_result.scalar_one_or_none()
                 if existing_ns and existing_ns != domain_namespace:
@@ -230,7 +242,9 @@ class IngestionService(IngestionServiceProtocol):
                 "is_latest_approved": new_item.is_latest_approved,
                 "ingested_by_id": new_item.ingested_by_id,
                 "created_at": new_item.created_at,
-                "search_vector": str(new_item.search_vector) if new_item.search_vector is not None else None,
+                "search_vector": str(new_item.search_vector)
+                if new_item.search_vector is not None
+                else None,
                 "embedding": list(new_item.embedding) if new_item.embedding is not None else None,
                 "audit_sequence_id": seq_id,
             }

@@ -4,8 +4,10 @@ Retrieval Service Protocol Definition (`Stage 5 Engine`).
 Mandated by Blueprint Section 26.5 (RetrievalServiceProtocol) & Section 13.
 Strictly decoupled from concrete implementation (`Option A Immutability`).
 """
-from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
+
 import uuid
+from typing import Any, Protocol, runtime_checkable
+
 from app.security.context import CallerContext
 
 
@@ -13,7 +15,7 @@ from app.security.context import CallerContext
 class RetrievalServiceProtocol(Protocol):
     """
     Contract for Clearance-Scoped Semantic Retrieval and Vector Query Engine.
-    
+
     All implementations must guarantee:
     1. Active-Only Quarantine Gating (`status = APPROVED AND is_latest_approved = True`).
     2. Zero-Trust Horizontal (`domain_namespace IN allowed_namespaces`) and Vertical (`sensitivity_level <= max_sensitivity_level`) clearance filtering.
@@ -25,16 +27,16 @@ class RetrievalServiceProtocol(Protocol):
         self,
         session: Any,
         caller: CallerContext,
-        query_text: Optional[str] = None,
-        query_vector: Optional[List[float]] = None,
+        query_text: str | None = None,
+        query_vector: list[float] | None = None,
         limit: int = 10,
         offset: int = 0,
         similarity_threshold: float = 0.7,
-        domain_namespaces: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        domain_namespaces: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Execute clearance-scoped hybrid semantic search.
-        
+
         Args:
             session: Active AsyncSession within caller-owned transaction boundary.
             caller: Authenticated CallerContext identity with namespace/sensitivity clearances.
@@ -44,7 +46,7 @@ class RetrievalServiceProtocol(Protocol):
             offset: Pagination offset (`>= 0`).
             similarity_threshold: Minimum vector similarity threshold (`0.0 to 1.0`).
             domain_namespaces: Optional subset of namespaces to query (`must be within caller.allowed_namespaces`).
-            
+
         Returns:
             List of zero-copy DTO dictionaries representing matching active knowledge items.
         """
@@ -54,16 +56,16 @@ class RetrievalServiceProtocol(Protocol):
         self,
         session: Any,
         caller: CallerContext,
-        item_id: Union[str, uuid.UUID],
-    ) -> Dict[str, Any]:
+        item_id: str | uuid.UUID,
+    ) -> dict[str, Any]:
         """
         Fetch a single approved knowledge item by exact ID under strict clearance gating.
-        
+
         Args:
             session: Active AsyncSession within caller-owned transaction boundary.
             caller: Authenticated CallerContext identity.
             item_id: Target document UUID.
-            
+
         Returns:
             Zero-copy DTO dictionary of the document if active and clearance-authorized.
         """

@@ -217,7 +217,7 @@ async def test_search_recent_feed_fallback_when_queries_empty(
 
     item = create_mock_knowledge_item(title="Recent Feed Doc")
     mock_result = MagicMock()
-    mock_result.all.return_value = [item]  # No score tuple in recent feed fallback
+    mock_result.scalars.return_value.all.return_value = [item]  # No score tuple in recent feed fallback
     mock_session.execute.return_value = mock_result
 
     results = await service.search(session=mock_session, caller=engineer_caller, query_text=None, query_vector=None)

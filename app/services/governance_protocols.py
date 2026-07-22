@@ -5,8 +5,9 @@ Operates asynchronously over an open SQLAlchemy AsyncSession (`psycopg3`).
 Created as an independent module (`Option A Zero Modifications`) to preserve Component #3 immutability.
 """
 
-from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 from uuid import UUID
+
 from app.security.context import CallerContext
 
 
@@ -16,14 +17,15 @@ class GovernanceServiceProtocol(Protocol):
     Contract for Stage 4 Governance Adjudication Core Engine (`Section 26.4`).
     All methods operate asynchronously over an open SQLAlchemy AsyncSession inside an active transaction (`session.begin()`).
     """
+
     async def adjudicate_item(
         self,
         session: Any,
         caller: CallerContext,
-        item_id: Union[str, UUID],
+        item_id: str | UUID,
         decision: str,  # 'APPROVED' or 'REJECTED'
-        justification: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        justification: str | None = None,
+    ) -> dict[str, Any]:
         """
         Orchestrates Stage 4 Domain Steward adjudication (`Section 12`).
         Enforces clearance checks, Four-Eyes Principle (`BR-05`), Blue-Green demotion (`RSK-05`),
@@ -36,10 +38,10 @@ class GovernanceServiceProtocol(Protocol):
         self,
         session: Any,
         caller: CallerContext,
-        domain_namespace: Optional[str] = None,
+        domain_namespace: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieves quarantined (`PENDING`) knowledge items scoped strictly to the caller's
         horizontal (`allowed_namespaces`) and vertical (`max_sensitivity_level`) clearances (`Section 26.4`).

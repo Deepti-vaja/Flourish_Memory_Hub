@@ -8,9 +8,11 @@ immutable `governance_decisions` persistence, and cryptographic HMAC audit chain
 
 import datetime
 import uuid
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
+
 import sqlalchemy.exc
 from sqlalchemy import select, update
+
 from app.audit.chainer import AuditChainService, AuditEventPayload
 from app.core.constants import AuditActionEnum, KnowledgeStatusEnum
 from app.models.governance import GovernanceDecision
@@ -35,17 +37,17 @@ class GovernanceService(GovernanceServiceProtocol):
     Never calls `session.begin()`, `session.commit()`, `session.rollback()`, or `session.close()` directly (`Section 15 / Section 26.4`).
     """
 
-    def __init__(self, audit_service: Optional[AuditChainService] = None) -> None:
+    def __init__(self, audit_service: AuditChainService | None = None) -> None:
         self.audit_service = audit_service or AuditChainService()
 
     async def adjudicate_item(
         self,
         session: Any,
         caller: CallerContext,
-        item_id: Union[str, uuid.UUID],
+        item_id: str | uuid.UUID,
         decision: str,  # 'APPROVED' or 'REJECTED'
-        justification: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        justification: str | None = None,
+    ) -> dict[str, Any]:
         """
         Adjudicates a quarantined (`PENDING`) knowledge item (`Section 12 / Section 26.4`).
         Steps:
@@ -66,7 +68,9 @@ class GovernanceService(GovernanceServiceProtocol):
             )
 
         if not isinstance(caller, CallerContext):
-            raise GovernanceError("Caller identity must be an authenticated CallerContext object (`Section 26.1`).")
+            raise GovernanceError(
+                "Caller identity must be an authenticated CallerContext object (`Section 26.1`)."
+            )
 
         # Step 1: Validate functional role (`Section 12`)
         if caller.functional_role not in ("STEWARD", "ADMIN"):
@@ -78,18 +82,24 @@ class GovernanceService(GovernanceServiceProtocol):
         # Validate and sanitize input strings
         decision_upper = str(decision).strip().upper()
         if decision_upper not in ("APPROVED", "REJECTED"):
-            raise GovernanceError(f"Invalid adjudication decision '{decision}'. Must be 'APPROVED' or 'REJECTED'.")
+            raise GovernanceError(
+                f"Invalid adjudication decision '{decision}'. Must be 'APPROVED' or 'REJECTED'."
+            )
 
-        clean_justification: Optional[str] = None
+        clean_justification: str | None = None
         if justification is not None:
             clean_justification = str(justification).replace("\x00", "").strip()
             if len(clean_justification) > 10_000:
-                raise GovernanceError("Adjudication justification exceeds maximum permitted length (`10,000 characters`).")
+                raise GovernanceError(
+                    "Adjudication justification exceeds maximum permitted length (`10,000 characters`)."
+                )
 
         try:
             target_uuid = uuid.UUID(str(item_id)) if not isinstance(item_id, uuid.UUID) else item_id
         except (ValueError, TypeError) as err:
-            raise DocumentNotFoundError(f"Invalid item_id UUID representation: '{item_id}'.") from err
+            raise DocumentNotFoundError(
+                f"Invalid item_id UUID representation: '{item_id}'."
+            ) from err
 
         try:
             # Step 2: Lock target tuple with pessimistic FOR UPDATE (`RSK-01`)
@@ -101,10 +111,12 @@ class GovernanceService(GovernanceServiceProtocol):
                 .execution_options(populate_existing=True)
             )
             res = await session.execute(stmt)
-            item: Optional[KnowledgeItem] = res.scalar_one_or_none()
+            item: KnowledgeItem | None = res.scalar_one_or_none()
 
             if item is None:
-                raise DocumentNotFoundError(f"KnowledgeItem '{target_uuid}' not found inside database table.")
+                raise DocumentNotFoundError(
+                    f"KnowledgeItem '{target_uuid}' not found inside database table."
+                )
 
             # Step 3: Enforce horizontal & vertical clearances (`Section 11.1 / Section 11.3`)
             if item.domain_namespace not in caller.allowed_namespaces:
@@ -148,7 +160,8 @@ class GovernanceService(GovernanceServiceProtocol):
                         update(KnowledgeItem)
                         .where(
                             KnowledgeItem.source_uri == item.source_uri,
-                            KnowledgeItem.domain_namespace == item.domain_namespace,  # Strict defense-in-depth scoping
+                            KnowledgeItem.domain_namespace
+                            == item.domain_namespace,  # Strict defense-in-depth scoping
                             KnowledgeItem.item_id != item.item_id,
                             KnowledgeItem.is_latest_approved == True,
                         )
@@ -167,13 +180,13 @@ class GovernanceService(GovernanceServiceProtocol):
                 steward_id=caller.user_id,
                 decision_type=decision_upper,
                 justification=clean_justification,
-                decided_at=datetime.datetime.now(datetime.timezone.utc),
+                decided_at=datetime.datetime.now(datetime.UTC),
             )
             session.add(decision_row)
             await session.flush()
 
             # Step 8: Invoke AuditChainService.log_event (`RSK-04`)
-            audit_payload: Dict[str, Any] = {
+            audit_payload: dict[str, Any] = {
                 "decision_id": str(decision_row.decision_id),
                 "item_id": str(item.item_id),
                 "steward_id": str(caller.user_id),
@@ -189,7 +202,9 @@ class GovernanceService(GovernanceServiceProtocol):
             }
 
             audit_event_payload = AuditEventPayload(
-                action_type=AuditActionEnum.APPROVE if decision_upper == "APPROVED" else AuditActionEnum.REJECT,
+                action_type=AuditActionEnum.APPROVE
+                if decision_upper == "APPROVED"
+                else AuditActionEnum.REJECT,
                 actor_id=caller.user_id,
                 target_id=item.item_id,
                 details=audit_payload,
@@ -223,19 +238,31 @@ class GovernanceService(GovernanceServiceProtocol):
             raise
         except sqlalchemy.exc.IntegrityError as err:
             sqlstate = getattr(err.orig, "sqlstate", None) if hasattr(err, "orig") else None
-            constraint = getattr(getattr(err.orig, "diag", None), "constraint_name", "") if hasattr(err, "orig") else ""
+            constraint = (
+                getattr(getattr(err.orig, "diag", None), "constraint_name", "")
+                if hasattr(err, "orig")
+                else ""
+            )
             constraint_str = (constraint or str(err)).lower()
 
             if sqlstate == "23514" or "four_eyes" in constraint_str:
-                if "four_eyes" in constraint_str or (sqlstate == "23514" and "steward" in str(err).lower()):
+                if "four_eyes" in constraint_str or (
+                    sqlstate == "23514" and "steward" in str(err).lower()
+                ):
                     raise FourEyesPrincipleViolationError(
                         f"Four-Eyes Principle Violation (`BR-05 / trg_governance_four_eyes`): {err}"
                     ) from err
-                raise GovernanceError(f"Database check constraint violation (`SQLSTATE {sqlstate}`): {err}") from err
+                raise GovernanceError(
+                    f"Database check constraint violation (`SQLSTATE {sqlstate}`): {err}"
+                ) from err
             elif sqlstate == "23505" or "unique" in constraint_str:
                 if "uidx_latest_approved_source" in constraint_str:
-                    raise GovernanceError("Canonical source_uri collision during Blue-Green promotion (`RSK-05`).") from err
-                raise GovernanceError(f"Database unique constraint violation (`SQLSTATE {sqlstate}`): {err}") from err
+                    raise GovernanceError(
+                        "Canonical source_uri collision during Blue-Green promotion (`RSK-05`)."
+                    ) from err
+                raise GovernanceError(
+                    f"Database unique constraint violation (`SQLSTATE {sqlstate}`): {err}"
+                ) from err
             raise GovernanceError(f"Database integrity error during adjudication: {err}") from err
         except (sqlalchemy.exc.OperationalError, sqlalchemy.exc.DatabaseError) as err:
             sqlstate = getattr(err.orig, "sqlstate", None) if hasattr(err, "orig") else None
@@ -243,20 +270,24 @@ class GovernanceService(GovernanceServiceProtocol):
                 raise GovernanceError(
                     f"Database lock contention or query timeout during adjudication (`SQLSTATE {sqlstate}`): {err}"
                 ) from err
-            raise GovernanceError(f"Database operational anomaly during adjudication (`SQLSTATE {sqlstate}`): {err}") from err
+            raise GovernanceError(
+                f"Database operational anomaly during adjudication (`SQLSTATE {sqlstate}`): {err}"
+            ) from err
         except Exception as err:
             if isinstance(err, GovernanceError):
                 raise
-            raise GovernanceError(f"Unexpected internal anomaly during adjudication: {err}") from err
+            raise GovernanceError(
+                f"Unexpected internal anomaly during adjudication: {err}"
+            ) from err
 
     async def list_pending_items(
         self,
         session: Any,
         caller: CallerContext,
-        domain_namespace: Optional[str] = None,
+        domain_namespace: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieves quarantined (`PENDING`) items within caller clearances (`Section 26.4`).
         Requires active transaction boundary (`session.in_transaction()`).
@@ -267,7 +298,9 @@ class GovernanceService(GovernanceServiceProtocol):
             )
 
         if not isinstance(caller, CallerContext):
-            raise GovernanceError("Caller identity must be an authenticated CallerContext object (`Section 26.1`).")
+            raise GovernanceError(
+                "Caller identity must be an authenticated CallerContext object (`Section 26.1`)."
+            )
 
         if caller.functional_role not in ("STEWARD", "ADMIN"):
             raise StewardAuthorizationError(
@@ -302,25 +335,33 @@ class GovernanceService(GovernanceServiceProtocol):
             res = await session.execute(stmt)
             items = res.scalars().all()
 
-            results: List[Dict[str, Any]] = []
+            results: list[dict[str, Any]] = []
             for item in items:
-                results.append({
-                    "item_id": str(item.item_id),
-                    "title": item.title,
-                    "body": item.body,
-                    "source_uri": item.source_uri,
-                    "domain_namespace": item.domain_namespace,
-                    "sensitivity_label": item.sensitivity_label.value if hasattr(item.sensitivity_label, "value") else str(item.sensitivity_label),
-                    "sensitivity_level": item.sensitivity_level,
-                    "status": item.status.value if hasattr(item.status, "value") else str(item.status),
-                    "version": item.version,
-                    "is_latest_approved": item.is_latest_approved,
-                    "ingested_by_id": str(item.ingested_by_id),
-                    "created_at": item.created_at.isoformat() if item.created_at else None,
-                })
+                results.append(
+                    {
+                        "item_id": str(item.item_id),
+                        "title": item.title,
+                        "body": item.body,
+                        "source_uri": item.source_uri,
+                        "domain_namespace": item.domain_namespace,
+                        "sensitivity_label": item.sensitivity_label.value
+                        if hasattr(item.sensitivity_label, "value")
+                        else str(item.sensitivity_label),
+                        "sensitivity_level": item.sensitivity_level,
+                        "status": item.status.value
+                        if hasattr(item.status, "value")
+                        else str(item.status),
+                        "version": item.version,
+                        "is_latest_approved": item.is_latest_approved,
+                        "ingested_by_id": str(item.ingested_by_id),
+                        "created_at": item.created_at.isoformat() if item.created_at else None,
+                    }
+                )
             return results
         except sqlalchemy.exc.SQLAlchemyError as err:
-            raise GovernanceError(f"Database query failure during list_pending_items: {err}") from err
+            raise GovernanceError(
+                f"Database query failure during list_pending_items: {err}"
+            ) from err
 
 
 __all__ = ["GovernanceService"]

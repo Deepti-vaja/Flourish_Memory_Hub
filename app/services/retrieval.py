@@ -4,10 +4,13 @@ Clearance-Scoped Semantic Retrieval and Vector Query Engine (`Stage 5 Engine`).
 Mandated by Blueprint Section 26.5 (RetrievalServiceProtocol), Section 13 (Active-Only Gating),
 and Section 19 (RSK-02 / RSK-04). Implements Option A structural immutability.
 """
-from typing import Any, Dict, List, Optional, Tuple, Union
+
 import uuid
+from typing import Any
+
 from sqlalchemy import func, literal_column, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.audit.chainer import AuditChainService, AuditEventPayload
 from app.core.constants import AuditActionEnum, KnowledgeStatusEnum
@@ -25,7 +28,7 @@ from app.services.retrieval_protocols import RetrievalServiceProtocol
 class RetrievalService(RetrievalServiceProtocol):
     """
     Core implementation of the Stage 5 Clearance-Scoped Semantic Retrieval Engine.
-    
+
     Guarantees:
     1. Precondition Step 0 (`session.in_transaction() must be True / zero lifecycle commits`).
     2. Active-Only Quarantine Gating (`status = APPROVED AND is_latest_approved = True`).
@@ -35,17 +38,17 @@ class RetrievalService(RetrievalServiceProtocol):
     6. Cryptographic Search Audit Chaining (`AuditChainService.log_event` without restricted keys).
     """
 
-    def __init__(self, audit_service: Optional[AuditChainService] = None) -> None:
+    def __init__(self, audit_service: AuditChainService | None = None) -> None:
         self.audit_service = audit_service or AuditChainService()
 
     def _build_clearance_predicate(
         self,
         caller: CallerContext,
-        domain_namespaces: Optional[List[str]] = None,
-    ) -> Tuple[List[str], List[Any]]:
+        domain_namespaces: list[str] | None = None,
+    ) -> tuple[list[str], list[Any]]:
         """
         Construct the mandatory B-Tree / HNSW pushdown WHERE clauses (`RSK-02`).
-        
+
         Raises `SearchClearanceViolationError (403)` if caller requests namespaces not in `caller.allowed_namespaces`.
         Returns tuple `(effective_namespaces, where_clauses)`. If `effective_namespaces` is empty,
         callers should short-circuit to prevent SQL IN () syntax errors.
@@ -77,15 +80,15 @@ class RetrievalService(RetrievalServiceProtocol):
 
     async def search(
         self,
-        session: Union[AsyncSession, Any],
+        session: AsyncSession | Any,
         caller: CallerContext,
-        query_text: Optional[str] = None,
-        query_vector: Optional[List[float]] = None,
+        query_text: str | None = None,
+        query_vector: list[float] | None = None,
         limit: int = 10,
         offset: int = 0,
         similarity_threshold: float = 0.7,
-        domain_namespaces: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        domain_namespaces: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """Execute clearance-scoped hybrid semantic search using Flag-32 Cover Density normalization."""
         # Precondition Step 0: Transaction Boundary Assertion (`Section 15`)
         if hasattr(session, "in_transaction") and callable(session.in_transaction):
@@ -106,7 +109,9 @@ class RetrievalService(RetrievalServiceProtocol):
                 )
 
         # Build clearance predicate
-        effective_namespaces, where_clauses = self._build_clearance_predicate(caller, domain_namespaces)
+        effective_namespaces, where_clauses = self._build_clearance_predicate(
+            caller, domain_namespaces
+        )
         if not effective_namespaces:
             return []
 
@@ -123,19 +128,22 @@ class RetrievalService(RetrievalServiceProtocol):
                 .offset(offset)
             )
             res = await session.execute(stmt)
-            rows = res.all()
-            items_dto = [self._item_to_dto(row[0] if isinstance(row, tuple) else row, score=0.0) for row in rows]
+            items = res.scalars().all()
+            items_dto = [self._item_to_dto(item, score=0.0) for item in items]
         else:
             from sqlalchemy import or_
 
             # Construct Flag-32 Cover Density normalized hybrid score expressions with COALESCE null wrapping
+            vector_score: ColumnElement[Any]
             if not is_vector_empty and query_vector is not None:
                 vec_sim = 1.0 - KnowledgeItem.embedding.cosine_distance(query_vector)
                 vector_score = func.coalesce(vec_sim, 0.0)
-                vector_condition = (vector_score >= float(similarity_threshold))
+                vector_condition = vector_score >= float(similarity_threshold)
             else:
                 vector_score = literal_column("0.0")
                 vector_condition = None
+
+            lexical_score: ColumnElement[Any]
 
             if not is_text_empty and query_text is not None:
                 clean_text = str(query_text).strip()
@@ -152,7 +160,7 @@ class RetrievalService(RetrievalServiceProtocol):
             else:
                 lexical_score = literal_column("0.0")
                 lexical_condition = None
-            
+
             # Enforce that the search_vector matches the query or the vector similarity is high enough
             if lexical_condition is not None and vector_condition is not None:
                 where_clauses.append(or_(lexical_condition, vector_condition))
@@ -166,14 +174,20 @@ class RetrievalService(RetrievalServiceProtocol):
             stmt = (
                 select(KnowledgeItem, combined_score)
                 .where(*where_clauses)
-                .order_by(combined_score.desc(), KnowledgeItem.created_at.desc(), KnowledgeItem.item_id.asc())
+                .order_by(
+                    combined_score.desc(),
+                    KnowledgeItem.created_at.desc(),
+                    KnowledgeItem.item_id.asc(),
+                )
                 .limit(limit)
                 .offset(offset)
             )
             res = await session.execute(stmt)
             rows = res.all()
             items_dto = [
-                self._item_to_dto(row[0], score=float(row[1]) if len(row) > 1 and row[1] is not None else 0.0)
+                self._item_to_dto(
+                    row[0], score=float(row[1]) if len(row) > 1 and row[1] is not None else 0.0
+                )
                 for row in rows
             ]
 
@@ -184,7 +198,7 @@ class RetrievalService(RetrievalServiceProtocol):
 
         # Cryptographic Search Audit Chaining (`RSK-04`)
         # Log event without storing restricted keys (body, content, snippet, raw_text) inside details
-        target_uuid: Optional[uuid.UUID] = None
+        target_uuid: uuid.UUID | None = None
         if items_dto:
             try:
                 target_uuid = uuid.UUID(items_dto[0]["item_id"])
@@ -212,10 +226,10 @@ class RetrievalService(RetrievalServiceProtocol):
 
     async def get_item_by_id(
         self,
-        session: Union[AsyncSession, Any],
+        session: AsyncSession | Any,
         caller: CallerContext,
-        item_id: Union[str, uuid.UUID],
-    ) -> Dict[str, Any]:
+        item_id: str | uuid.UUID,
+    ) -> dict[str, Any]:
         """Fetch a single approved knowledge item by ID under strict active-only clearance gating."""
         # Precondition Step 0: Transaction Boundary Assertion (`Section 15`)
         if hasattr(session, "in_transaction") and callable(session.in_transaction):
@@ -229,7 +243,9 @@ class RetrievalService(RetrievalServiceProtocol):
         except (ValueError, TypeError):
             raise ItemNotFoundError(item_id=str(item_id))
 
-        effective_namespaces, where_clauses = self._build_clearance_predicate(caller, domain_namespaces=None)
+        effective_namespaces, where_clauses = self._build_clearance_predicate(
+            caller, domain_namespaces=None
+        )
         if not effective_namespaces:
             raise ItemNotFoundError(item_id=str(item_id))
 
@@ -258,7 +274,7 @@ class RetrievalService(RetrievalServiceProtocol):
 
         return item_dto
 
-    def _item_to_dto(self, item: KnowledgeItem, score: float = 0.0) -> Dict[str, Any]:
+    def _item_to_dto(self, item: KnowledgeItem, score: float = 0.0) -> dict[str, Any]:
         """Convert an ORM KnowledgeItem instance into a zero-copy DTO dictionary."""
         return {
             "item_id": str(item.item_id),
@@ -272,9 +288,7 @@ class RetrievalService(RetrievalServiceProtocol):
                 else str(item.sensitivity_label)
             ),
             "sensitivity_level": item.sensitivity_level,
-            "status": (
-                item.status.value if hasattr(item.status, "value") else str(item.status)
-            ),
+            "status": (item.status.value if hasattr(item.status, "value") else str(item.status)),
             "version": item.version,
             "is_latest_approved": item.is_latest_approved,
             "ingested_by_id": str(item.ingested_by_id),

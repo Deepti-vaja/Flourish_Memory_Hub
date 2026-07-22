@@ -3,10 +3,13 @@ FastAPI / ASGI Dependency Engine (`Stage 7 Controllers / Section 15 & 26.2`).
 Provides transactional database session injection (`asserting session.in_transaction() is True`)
 and authenticated `CallerContext` header resolution.
 """
-from typing import AsyncGenerator
-from fastapi import Depends, Request
+
+from collections.abc import AsyncGenerator
+
+from fastapi import Request
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.database.session import async_session_maker
 from app.security.context import CallerContext
 from app.security.context_resolver import SecurityContextResolver

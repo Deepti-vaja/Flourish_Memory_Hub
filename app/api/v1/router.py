@@ -2,13 +2,15 @@
 Aggregated Stage 7 API Router (`/api/v1`).
 Includes ingestion, governance, retrieval, context assembly, and audit verification endpoints.
 """
+
 from fastapi import APIRouter
+
 from app.api.v1.endpoints import (
-    ingestion_router,
-    governance_router,
-    retrieval_router,
-    context_router,
     audit_router,
+    context_router,
+    governance_router,
+    ingestion_router,
+    retrieval_router,
 )
 
 api_router = APIRouter()

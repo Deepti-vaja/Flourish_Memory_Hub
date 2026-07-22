@@ -2,31 +2,33 @@
 Stage 7 Retrieval Controller (`POST /api/v1/retrieval/search` and `GET /api/v1/retrieval/items/{item_id}`).
 Exposes Stage 5 hybrid retrieval engine over ASGI/FastAPI under strict clearance and active-only gating.
 """
-from typing import List
+
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import get_caller_context, get_db_transaction
 from app.audit.chainer import AuditChainService
+from app.schemas.retrieval import GetItemResponse, SearchHitResponse, SearchRequest
 from app.security.context import CallerContext
 from app.services.retrieval import RetrievalService
-from app.schemas.retrieval import SearchRequest, SearchHitResponse, GetItemResponse
 
 router = APIRouter()
 
 
 @router.post(
     "/search",
-    response_model=List[SearchHitResponse],
+    response_model=list[SearchHitResponse],
     status_code=status.HTTP_200_OK,
     summary="Execute clearance-scoped hybrid retrieval",
-    description="Searches active knowledge items strictly within the caller's allowed namespaces and vertical sensitivity ceiling."
+    description="Searches active knowledge items strictly within the caller's allowed namespaces and vertical sensitivity ceiling.",
 )
 async def search_items_endpoint(
     payload: SearchRequest,
     session: AsyncSession = Depends(get_db_transaction),
     caller: CallerContext = Depends(get_caller_context),
-) -> List[SearchHitResponse]:
+) -> list[SearchHitResponse]:
     audit_service = AuditChainService()
     retrieval_service = RetrievalService(audit_service=audit_service)
 
@@ -52,7 +54,7 @@ async def search_items_endpoint(
     response_model=GetItemResponse,
     status_code=status.HTTP_200_OK,
     summary="Fetch single active knowledge item by UUID",
-    description="Retrieves item details if active and within caller's clearance boundaries."
+    description="Retrieves item details if active and within caller's clearance boundaries.",
 )
 async def get_item_endpoint(
     item_id: UUID,

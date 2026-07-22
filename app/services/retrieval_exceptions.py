@@ -4,7 +4,7 @@ Domain Exception Hierarchy for Component #5 (`Retrieval Engine — Stage 5 Engin
 All retrieval exceptions inherit from `FlourishGovernanceError` (Component #2 Base Exception),
 ensuring uniform trapping, mapping, and HTTP status code translation by Stage 7 routers (`Section 14`).
 """
-from typing import Optional
+
 from app.services.exceptions import FlourishGovernanceError
 
 
@@ -22,7 +22,9 @@ class SearchClearanceViolationError(RetrievalError):
     Raised when requested search parameters exceed caller horizontal or vertical security clearance (403 Forbidden).
     """
 
-    def __init__(self, message: str = "Search request exceeds caller security clearance boundaries"):
+    def __init__(
+        self, message: str = "Search request exceeds caller security clearance boundaries"
+    ):
         super().__init__(message)
         self.error_code = "SEARCH_CLEARANCE_VIOLATION"
 

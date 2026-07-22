@@ -18,4 +18,5 @@ CONSTRAINT_NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy Declarative ORM models in the Flourish Memory Hub."""
+
     metadata = MetaData(naming_convention=CONSTRAINT_NAMING_CONVENTION)

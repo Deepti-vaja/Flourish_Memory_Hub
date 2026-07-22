@@ -4,7 +4,7 @@ Domain Exception Hierarchy for Component #6 (`Context Assembly & Lineage Engine 
 All exceptions inherit from `FlourishGovernanceError` (`Component #2 Base Exception`),
 ensuring uniform trapping, mapping, and HTTP status code translation by Stage 7 routers (`Section 14`).
 """
-from typing import Optional
+
 from app.services.exceptions import FlourishGovernanceError
 
 
@@ -51,7 +51,7 @@ class LineageIntegrityError(ContextAssemblyError):
     Raised when a candidate document DTO returned by retrieval lacks required lineage markers (500 Internal Server Error).
     """
 
-    def __init__(self, missing_field: str, item_id: Optional[str] = None):
+    def __init__(self, missing_field: str, item_id: str | None = None):
         message = f"Candidate document DTO {f'(item_id={item_id}) ' if item_id else ''}missing mandatory lineage field: '{missing_field}'"
         super().__init__(message)
         self.error_code = "LINEAGE_INTEGRITY_ERROR"

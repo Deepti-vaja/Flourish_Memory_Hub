@@ -11,11 +11,12 @@ Matches exactly with Blueprint Section 11.4 (L1043–L1102):
 import datetime
 import uuid
 from typing import TYPE_CHECKING, Any
+
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
-    Enum as SQLEnum,
     ForeignKey,
     Index,
     Integer,
@@ -23,16 +24,19 @@ from sqlalchemy import (
     Text,
     text,
 )
+from sqlalchemy import (
+    Enum as SQLEnum,
+)
 from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from pgvector.sqlalchemy import Vector
+
 from app.core.constants import KnowledgeStatusEnum, SensitivityLabelEnum
 from app.models.base import Base
 
 if TYPE_CHECKING:
-    from app.models.namespace import Namespace, User
-    from app.models.governance import GovernanceDecision
     from app.models.audit import AuditLog
+    from app.models.governance import GovernanceDecision
+    from app.models.namespace import Namespace, User
 
 
 class KnowledgeItem(Base):
@@ -40,9 +44,12 @@ class KnowledgeItem(Base):
     Primary organizational knowledge repository table.
     Mandated by Blueprint Section 11.4 (L1043) & Brief P6/P12.
     """
+
     __tablename__ = "knowledge_items"
     __table_args__ = (
-        CheckConstraint("sensitivity_level BETWEEN 1 AND 4", name="chk_knowledge_sensitivity_level"),
+        CheckConstraint(
+            "sensitivity_level BETWEEN 1 AND 4", name="chk_knowledge_sensitivity_level"
+        ),
         CheckConstraint("version >= 1", name="chk_knowledge_version"),
         # Partial unique index ensuring only one latest approved version per source_uri exists (RSK-05)
         Index(
@@ -68,7 +75,10 @@ class KnowledgeItem(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     source_uri: Mapped[str | None] = mapped_column(String(512), nullable=True, index=True)
     domain_namespace: Mapped[str] = mapped_column(
-        String(100), ForeignKey("namespaces.namespace_id", ondelete="RESTRICT"), nullable=False, index=True
+        String(100),
+        ForeignKey("namespaces.namespace_id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     sensitivity_label: Mapped[SensitivityLabelEnum] = mapped_column(
         SQLEnum(SensitivityLabelEnum, name="sensitivity_label_enum", create_type=False),
@@ -92,12 +102,15 @@ class KnowledgeItem(Base):
     embedding: Mapped[Any | None] = mapped_column(Vector(1536), nullable=True)
 
     ingested_by_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        default=lambda: datetime.datetime.now(datetime.UTC),
     )
 
     # Relationships
@@ -106,6 +119,4 @@ class KnowledgeItem(Base):
     governance_decisions: Mapped[list["GovernanceDecision"]] = relationship(
         "GovernanceDecision", back_populates="item", cascade="all, delete-orphan"
     )
-    audit_logs: Mapped[list["AuditLog"]] = relationship(
-        "AuditLog", back_populates="target_item"
-    )
+    audit_logs: Mapped[list["AuditLog"]] = relationship("AuditLog", back_populates="target_item")

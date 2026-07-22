@@ -4,8 +4,11 @@ Context Assembly Service Protocol Definition (`Stage 6 Engine`).
 Mandated by Blueprint Section 26.6 (ContextAssemblyServiceProtocol), Section 13 (Active-Only Gating),
 and Section 19 (RSK-04 / RSK-05). Strictly decoupled from concrete implementation (`Option A Immutability`).
 """
-from typing import Any, Callable, Dict, List, Optional, Protocol, Union, runtime_checkable
+
 import uuid
+from collections.abc import Callable
+from typing import Any, Protocol, runtime_checkable
+
 from app.security.context import CallerContext
 
 
@@ -13,7 +16,7 @@ from app.security.context import CallerContext
 class ContextAssemblyServiceProtocol(Protocol):
     """
     Contract for Stage 6 Context Assembly, Lineage Tracing & Prompt Injection Defense Engine.
-    
+
     All implementations must guarantee:
     1. Precondition Step 0 (`session.in_transaction() must be True / zero lifecycle commits`).
     2. Multi-channel Orchestration (`explicit_item_ids` exact lookup via `get_item_by_id` + semantic `search`).
@@ -26,19 +29,19 @@ class ContextAssemblyServiceProtocol(Protocol):
         self,
         session: Any,
         caller: CallerContext,
-        query_text: Optional[str] = None,
-        query_vector: Optional[List[float]] = None,
-        explicit_item_ids: Optional[List[Union[str, uuid.UUID]]] = None,
+        query_text: str | None = None,
+        query_vector: list[float] | None = None,
+        explicit_item_ids: list[str | uuid.UUID] | None = None,
         max_tokens: int = 4096,
         similarity_threshold: float = 0.7,
-        domain_namespaces: Optional[List[str]] = None,
+        domain_namespaces: list[str] | None = None,
         enable_injection_defense: bool = True,
         strict_security_abort: bool = False,
-        tokenizer_fn: Optional[Callable[[str], int]] = None,
-    ) -> Dict[str, Any]:
+        tokenizer_fn: Callable[[str], int] | None = None,
+    ) -> dict[str, Any]:
         """
         Execute clearance-scoped retrieval and assemble a sanitized, lineage-tracked LLM context block.
-        
+
         Args:
             session: Active AsyncSession within caller-owned transaction boundary.
             caller: Authenticated CallerContext identity with namespace/sensitivity clearances.
@@ -51,7 +54,7 @@ class ContextAssemblyServiceProtocol(Protocol):
             enable_injection_defense: Whether to execute 3-Stage NFKC/XML/Heuristic sanitization (`default True`).
             strict_security_abort: If True, raises PromptInjectionSecurityError upon discovering breakout injection instead of graceful skipping (`default False`).
             tokenizer_fn: Optional custom tokenizer callback `Callable[[str], int]`. If None, uses conservative 2.8 chars/token math.
-            
+
         Returns:
             Zero-copy DTO dictionary containing:
             - 'assembled_prompt': str (Formatted XML citations ready for LLM prompt injection)

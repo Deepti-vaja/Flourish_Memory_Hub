@@ -4,12 +4,14 @@ Initializes the SQLAlchemy 2.0 AsyncEngine, connection pooling, and session fact
 """
 
 from collections.abc import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
 from app.core.config import settings
 
 # Initialize AsyncEngine with connection pool hooks

@@ -2,12 +2,19 @@
 Flourish Governed Memory Hub — Stage 7 ASGI / FastAPI Application Entry Point (`app.main`).
 Initializes the FastAPI server, CORS middleware, exception handlers, and `/api/v1` router.
 """
+
+import asyncio
 import os
+import sys
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
 from app.api.v1.router import api_router
-from app.core.config import settings
 from app.middleware.exception_handler import register_exception_handlers
 
 
@@ -40,8 +47,12 @@ def create_app() -> FastAPI:
     app.include_router(api_router, prefix="/api/v1")
 
     @app.get("/health", tags=["Operational"])
-    async def health_check():
-        return {"status": "HEALTHY", "service": "Flourish Governed Memory Hub", "stage": "STAGE_7_ACTIVE"}
+    async def health_check() -> dict[str, str]:
+        return {
+            "status": "HEALTHY",
+            "service": "Flourish Governed Memory Hub",
+            "stage": "STAGE_7_ACTIVE",
+        }
 
     # Mount frontend UI dashboard onto root (`/`) so http://127.0.0.1:8000/ serves the client application directly
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
