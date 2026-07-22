@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     # Cryptographic Audit Hash Chainer Secret Key (HMAC SHA-256)
     AUDIT_HMAC_SECRET: str = Field(
-        "flourish-super-secret-hmac-key-for-local-development-only-replace-in-prod-2026",
+        ...,
         description="256-bit runtime environment secret key for audit log HMAC chaining",
     )
 
